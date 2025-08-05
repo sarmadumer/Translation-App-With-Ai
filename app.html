@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Translation App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* Custom animation for card entrance */
+        @keyframes slideIn {
+            0% { transform: translateY(50px); opacity: 0; }
+            100% { transform: translateY(0); opacity: 1; }
+        }
+        /* Custom animation for result fade-in */
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+        /* Apply animations */
+        .animate-card {
+            animation: slideIn 0.5s ease-out;
+        }
+        .animate-result {
+            animation: fadeIn 0.3s ease-in;
+        }
+        /* Gradient background with subtle animation */
+        body {
+            background: linear-gradient(-45deg, #3b82f6, #8b5cf6, #ec4899, #ef4444);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+        }
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center">
+    <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md animate-card transform transition-all hover:shadow-xl">
+        <h1 class="text-3xl font-extrabold mb-6 text-center text-gray-800">Translation App</h1>
+        <div class="mb-6">
+            <label for="inputText" class="block text-sm font-medium text-gray-700 mb-2">Enter English Text:</label>
+            <textarea id="inputText" rows="4" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-300" placeholder="e.g., The weather is nice today."></textarea>
+        </div>
+        <div class="mb-6">
+            <label for="targetLanguage" class="block text-sm font-medium text-gray-700 mb-2">Target Language:</label>
+            <select id="targetLanguage" class="mt-1 block w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-300">
+                <option value="Arabic">Arabic</option>
+                <option value="Urdu">Urdu</option>
+                <option value="Hindi">Hindi</option>
+                <option value="Spanish">Spanish</option>
+                <option value="French">French</option>
+                <option value="German">German</option>
+                <option value="Farsi">Farsi</option>
+                <option value="Italian">Italian</option>
+            </select>
+        </div>
+        <button id="translateBtn" class="w-full bg-indigo-600 text-white p-3 rounded-lg hover:bg-indigo-700 transition duration-300 transform hover:scale-105">Translate</button>
+        <div id="result" class="mt-6 p-5 border border-gray-200 rounded-lg bg-gray-50 hidden animate-result">
+            <div class="flex justify-between items-center">
+                <h2 class="text-xl font-semibold text-gray-800">Translated Text:</h2>
+                <div class="flex space-x-3">
+                    <button id="copyBtn" class="text-gray-600 hover:text-indigo-500 focus:outline-none transform hover:scale-110 transition duration-200" title="Copy to clipboard">
+                        <i class="fas fa-copy text-lg"></i>
+                    </button>
+                    <button id="speechBtn" class="text-gray-600 hover:text-indigo-500 focus:outline-none transform hover:scale-110 transition duration-200" title="Read aloud">
+                        <i class="fas fa-volume-up text-lg"></i>
+                    </button>
+                </div>
+            </div>
+            <p id="translatedText" class="mt-3 text-gray-700 text-base"></p>
+        </div>
+        <div id="error" class="mt-6 p-5 border border-red-200 rounded-lg bg-red-50 text-red-600 hidden animate-result"></div>
+    </div>
+
+    <script>
+        document.getElementById('translateBtn').addEventListener('click', async () => {
+            const inputText = document.getElementById('inputText').value.trim();
+            const targetLanguage = document.getElementById('targetLanguage').value;
+            const resultDiv = document.getElementById('result');
+            const translatedText = document.getElementById('translatedText');
+            const errorDiv = document.getElementById('error');
+
+            if (!inputText) {
+                errorDiv.textContent = 'Please enter text to translate.';
+                errorDiv.classList.remove('hidden');
+                resultDiv.classList.add('hidden');
+                return;
+            }
+
+            errorDiv.classList.add('hidden');
+            resultDiv.classList.add('hidden');
+
+            try {
+                const response = await fetch('http://localhost:5000/translate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: inputText, target_language: targetLanguage })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    translatedText.textContent = data.translated_text;
+                    resultDiv.classList.remove('hidden');
+                } else {
+                    errorDiv.textContent = data.error || 'Translation failed.';
+                    errorDiv.classList.remove('hidden');
+                }
+            } catch (err) {
+                errorDiv.textContent = 'Error connecting to the server.';
+                errorDiv.classList.remove('hidden');
+            }
+        });
+
+        document.getElementById('copyBtn').addEventListener('click', () => {
+            const translatedText = document.getElementById('translatedText').textContent;
+            navigator.clipboard.writeText(translatedText).then(() => {
+                const copyBtn = document.getElementById('copyBtn');
+                copyBtn.innerHTML = '<i class="fas fa-check text-lg"></i>';
+                setTimeout(() => {
+                    copyBtn.innerHTML = '<i class="fas fa-copy text-lg"></i>';
+                }, 2000);
+            }).catch(err => {
+                const errorDiv = document.getElementById('error');
+                errorDiv.textContent = 'Failed to copy text.';
+                errorDiv.classList.remove('hidden');
+            });
+        });
+
+        document.getElementById('speechBtn').addEventListener('click', () => {
+            const translatedText = document.getElementById('translatedText').textContent;
+            const targetLanguage = document.getElementById('targetLanguage').value;
+            if (translatedText) {
+                const utterance = new SpeechSynthesisUtterance(translatedText);
+                // Map target language to appropriate language code for SpeechSynthesis
+                const langMap = {
+                    'Arabic': 'ar-SA',
+                    'Urdu': 'ur-PK',
+                    'Hindi': 'hi-IN',
+                    'Spanish': 'es-ES',
+                    'French': 'fr-FR',
+                    'German': 'de-DE',
+                    'Farsi': 'fa-IR',
+                    'Italian': 'it-IT'
+                };
+                utterance.lang = langMap[targetLanguage] || 'en-US'; // Fallback to English if language not supported
+                utterance.volume = 1;
+                utterance.rate = 1;
+                utterance.pitch = 1;
+
+                // Change icon to indicate speaking
+                const speechBtn = document.getElementById('speechBtn');
+                speechBtn.innerHTML = '<i class="fas fa-volume-mute text-lg"></i>';
+                speechSynthesis.speak(utterance);
+
+                // Reset icon after speaking
+                utterance.onend = () => {
+                    speechBtn.innerHTML = '<i class="fas fa-volume-up text-lg"></i>';
+                };
+                utterance.onerror = () => {
+                    const errorDiv = document.getElementById('error');
+                    errorDiv.textContent = 'Failed to read text aloud.';
+                    errorDiv.classList.remove('hidden');
+                    speechBtn.innerHTML = '<i class="fas fa-volume-up text-lg"></i>';
+                };
+            }
+        });
+    </script>
+</body>
+</html>
