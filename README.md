@@ -76,10 +76,10 @@ Ensure direct and accurate output
 Contributions are welcome! Open issues or submit a pull request if you find bugs or have feature suggestions.
 
 
-🙋‍♂️ Author
-Sarmad Umer
-📧 LinkedIn
+🙋‍♂️ Authors
+Sarmad Umer and mawaz 
 🧠 AI Enthusiast | Full Stack Developer | Cybersecurity Learner
+
 
 🔗 Useful websites / Documentation
 AI21 Labs
